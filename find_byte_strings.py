@@ -57,18 +57,40 @@ class ByteStringsViewer_t(PluginForm):
         for f in Functions():
             func = get_func(f)
             chr_vals = {}
+            eightbit = {}
             for head in Heads(func.startEA,func.endEA):
                 if GetMnem(head) == "mov":
+                    if re.match('[abcd]l',GetOpnd(head,0)) and GetOpType(head,1) == o_imm and GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f:
+                        eightbit[GetOpnd(head,0)] = GetOperandValue(head,1)
                     if (GetOpnd(head,0).startswith('byte ptr') or GetOpnd(head,0).startswith('[e')) and GetOpType(head,1) == o_imm and GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f:
                         reg = GetOpnd(head,0)
                         reg = reg[reg.find('['):]
                         if reg.count('+') == 0: offset = 0
                         else: 
+                            ops = reg.split('+')
                             reg = reg[:reg.find('+')]+']'
                             offset = ctypes.c_int32(GetOperandValue(head,0)).value
+                            reg_base=0
+                            if len(ops) > 2 and ops[1].endswith('h'):
+                                reg_base = int(ops[1][:-1],16)
+                            offset = offset-reg_base
+                        if reg not in chr_vals: chr_vals[reg] = {}
+                        chr_vals[reg][offset] = (head,chr(GetOperandValue(head,1)))
+                    elif (GetOpnd(head,0).startswith('byte ptr') or GetOpnd(head,0).startswith('[e')) and GetOpType(head,1) == o_reg and GetOpnd(head,1) in eightbit:
+                        reg = GetOpnd(head,0)
+                        reg = reg[reg.find('['):]
+                        if reg.count('+') == 0: offset = 0
+                        else:
+                            ops = reg.split('+')
+                            reg = reg[:reg.find('+')]+']'
+                            offset = ctypes.c_int32(GetOperandValue(head,0)).value
+                            reg_base=0
+                            if len(ops) > 2 and ops[1].endswith('h'):
+                                reg_base = int(ops[1][:-1],16)
+                            offset = offset-reg_base
 
                         if reg not in chr_vals: chr_vals[reg] = {}
-                        if offset not in chr_vals[reg]: chr_vals[reg][offset] = (head,chr(GetOperandValue(head,1)))
+                        chr_vals[reg][offset] = (head,chr(eightbit[GetOpnd(head,1)]))
             for reg,c_v in chr_vals.items():
                 keys = c_v.keys()
                 keys.sort()
