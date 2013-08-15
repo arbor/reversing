@@ -1,24 +1,3 @@
-########################################################################
-# Byte string finder and displayer
-# Author: Jason Jones, Arbor Networks ASERT
-########################################################################
-# Copyright 2013 Arbor Networks
-#
-#   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-########################################################################
-
 from idaapi import *
 from idc import *
 from idautils import *
@@ -34,8 +13,8 @@ class ByteStringsViewer_t(PluginForm):
         self.byte_strings = {}
         self.table = QtGui.QTableWidget()
         self.table.setRowCount(1)
-        self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(("Address","String"))
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(("Address","Function","String"))
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.table)
 
@@ -61,16 +40,19 @@ class ByteStringsViewer_t(PluginForm):
     def Create(self):
         title = "Byte Strings"
         self.table.clear()
-        self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(("Address","String"))
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(("Address","Function","String"))
         self.table.itemClicked.connect(self.click_row)
         self.find_byte_strings()
         self.table.setRowCount(len(self.byte_strings.keys()))
         row = 0
         for addr,bstr in self.byte_strings.items():
             self.table.setItem(row,0,QtGui.QTableWidgetItem(addr))
-            self.table.setItem(row,1,QtGui.QTableWidgetItem(bstr))
+            self.table.setItem(row,1,QtGui.QTableWidgetItem(get_func_name(int(addr[2:],16))))
+            self.table.setItem(row,2,QtGui.QTableWidgetItem(bstr))
             row += 1
+        self.table.setSortingEnabled(True)
+
         
         
     def find_byte_strings(self):
