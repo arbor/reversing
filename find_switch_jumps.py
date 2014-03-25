@@ -68,7 +68,7 @@ class SwitchViewer_t(PluginForm):
         self.tree.clear()
         self.tree.setColumnCount(2)
         self.tree.clicked.connect(self.click_tree)
-        for func in self.switches.keys():
+        for func in sorted(self.switches.keys()):
             func_node = QtGui.QTreeWidgetItem(self.tree)
             func_node.setText(0,func)
             func_node.setText(1,"")
@@ -155,7 +155,8 @@ def get_switch_jumps(ea):
     heads=Heads(func.startEA,func.endEA)
     for head in heads:
         ic = []
-        if (hex(Word(head)) == "0x24ff" or hex(Word(head)) == "24ff") and GetMnem(head).find("jmp") != -1:
+        
+        if (hex(Word(head)).lower() == "0x24ff" or hex(Word(head)).lower() == "24ff") and GetMnem(head).find("jmp") != -1:
             if get_switch_info_ex(head) is None: continue
             sw = get_switch_info_ex(head)
             print "[*] Switch at 0x%08x  has  %s jtable elements" % (head,sw.get_jtable_size())
@@ -190,7 +191,6 @@ def find_all_switch_jumps():
         d = get_switch_jumps(func)
         if d!= []:
             data[get_func_name(func)] = d
-    print data
     SwitchForm = SwitchViewer_t()
     SwitchForm.switches = data
     SwitchForm.Show()
