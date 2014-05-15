@@ -23,6 +23,7 @@ from idautils import *
 import ctypes
 from PySide import QtGui, QtCore
 
+
 class ByteStringsViewer_t(PluginForm):
     def Show(self):
         return PluginForm.Show(self,"Byte Strings",options = PluginForm.FORM_PERSIST)
@@ -36,7 +37,7 @@ class ByteStringsViewer_t(PluginForm):
         self.table.setHorizontalHeaderLabels(("Address","Function","String"))
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.table)
-
+        self.clipboard = QtGui.QClipboard()
         self.Create()
         self.parent.setLayout(layout)
     def OnClose(self,form):
@@ -46,8 +47,11 @@ class ByteStringsViewer_t(PluginForm):
 
     def click_row(self):
         i = self.table.item(self.table.currentRow(),0)
+        bstr = self.table.item(self.table.currentRow(),2)
         print self.table.currentRow()
         addr = i.text().strip()
+        bstr = bstr.text()
+        print bstr
         print addr
         if not addr.startswith("0x"):
             addr = get_name_ea(BADADDR,str(addr))
@@ -55,7 +59,9 @@ class ByteStringsViewer_t(PluginForm):
             addr = addr[2:10]
             addr= int(addr,16)
         Jump(addr)
+        self.clipboard.setText(bstr)
         return
+
     def Create(self):
         title = "Byte Strings"
         self.table.clear()
@@ -69,6 +75,7 @@ class ByteStringsViewer_t(PluginForm):
             self.table.setItem(row,0,QtGui.QTableWidgetItem(addr))
             self.table.setItem(row,1,QtGui.QTableWidgetItem(get_func_name(int(addr[2:],16))))
             self.table.setItem(row,2,QtGui.QTableWidgetItem(bstr))
+            self.table.resizeRowToContents(row)
             row += 1
         self.table.setSortingEnabled(True)
 
@@ -82,9 +89,9 @@ class ByteStringsViewer_t(PluginForm):
             eightbit = {}
             for head in Heads(func.startEA,func.endEA):
                 if GetMnem(head) == "mov":
-                    if re.match('[abcd]l',GetOpnd(head,0)) and GetOpType(head,1) == o_imm and GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f:
+                    if re.match('[abcd]l',GetOpnd(head,0)) and GetOpType(head,1) == o_imm and ((GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f) or GetOperandValue(head,1) in [0xd,0xa]):
                         eightbit[GetOpnd(head,0)] = GetOperandValue(head,1)
-                    if (GetOpnd(head,0).startswith('byte ptr') or GetOpnd(head,0).startswith('[e')) and GetOpType(head,1) == o_imm and GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f:
+                    if (GetOpnd(head,0).startswith('byte ptr') or GetOpnd(head,0).startswith('[e')) and GetOpType(head,1) == o_imm and  ((GetOperandValue(head,1) >= 0x20 and GetOperandValue(head,1) <= 0x7f) or GetOperandValue(head,1) in [0xd,0xa]):
                         reg = GetOpnd(head,0)
                         reg = reg[reg.find('['):]
                         if reg.count('+') == 0: offset = 0
@@ -146,5 +153,8 @@ def find_all_byte_strings():
     global ByteStringForm
     ByteStringForm = ByteStringsViewer_t()
     ByteStringForm.Show()
+    ByteStringForm.table.resizeRowsToContents()
+    ByteStringForm.table.resizeColumnsToContents()
+
 
 find_all_byte_strings()
